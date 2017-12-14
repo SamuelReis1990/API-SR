@@ -1,39 +1,41 @@
-﻿using System;
+﻿using API.SR.Models;
+using API.SR.ViewModel;
 using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
 using System.Web.Http;
 
 namespace API.SR.Controllers
 {
+    //[ApiVersion()]
+    [RoutePrefix("Api/SR/Youtube")]
     public class YoutubeController : ApiController
     {
-        // GET api/<controller>
-        public IEnumerable<string> Get()
+        /// <summary>
+        /// Recupera os dados do canal do youtube
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet, Route("DadosCanal")]
+        public DadosCanalYoutube GetDadosCanalYoutube()
         {
-            return new string[] { "value1", "value2" };
+            return YoutubeAPICore.GetCanalYoutube();
         }
 
-        // GET api/<controller>/5
-        public string Get(int id)
-        {
-            return "value";
-        }
+        /// <summary>
+        /// Recupera os dados do canal do youtube sem filtros
+        /// </summary>
+        /// <param name="playListId"></param>
+        /// <returns></returns>
+        [HttpGet, Route("{playListId}/DadosVideo")]
+        public IList<DadosYoutube> GetDadosVideoYoutube(string playListId) => YoutubeAPICore.GetVideoYoutube(playListId);
 
-        // POST api/<controller>
-        public void Post([FromBody]string value)
-        {
-        }
-
-        // PUT api/<controller>/5
-        public void Put(int id, [FromBody]string value)
-        {
-        }
-
-        // DELETE api/<controller>/5
-        public void Delete(int id)
-        {
-        }
+        /// <summary>
+        /// Recupera os dados dos videos do youtube com filtros
+        /// </summary>
+        /// <param name="channelId"></param>
+        /// <param name="dataInicial"></param>
+        /// <param name="dataFinal"></param>
+        /// <returns></returns>
+        [HttpGet, Route("{channelId}/DadosVideo")]
+        public IList<DadosYoutube> GetDadosVideoYoutube(string channelId, string dataInicial, string dataFinal) 
+            => YoutubeAPICore.GetVideoYoutube(channelId, dataInicial, dataFinal);
     }
 }
