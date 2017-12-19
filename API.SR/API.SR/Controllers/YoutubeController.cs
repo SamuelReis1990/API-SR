@@ -14,10 +14,7 @@ namespace API.SR.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet, Route("DadosCanal")]
-        public DadosCanalYoutube GetDadosCanalYoutube()
-        {
-            return YoutubeAPICore.GetCanalYoutube();
-        }
+        public DadosCanalYoutube GetDadosCanalYoutube() => YoutubeAPICore.GetCanalYoutube();
 
         /// <summary>
         /// Recupera os dados do canal do youtube sem filtros

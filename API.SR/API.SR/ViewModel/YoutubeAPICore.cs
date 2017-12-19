@@ -19,41 +19,53 @@ namespace API.SR.ViewModel
 
         private static YouTubeService Auth()
         {
-            // Método resposável por fazer o login no google e recuperar o token via Oauth 2.0
-            UserCredential credenciais;
-            using (var stream = new FileStream(HttpContext.Current.Server.MapPath(@"~\Json\youtube_client_secret.json"), FileMode.Open, FileAccess.Read))
+            YouTubeService youTubeService = null;
+
+            try
             {
-                credenciais = GoogleWebAuthorizationBroker.AuthorizeAsync(
-                             GoogleClientSecrets.Load(stream).Secrets,
-                             new[] { YouTubeService.Scope.YoutubeReadonly },
-                             "user",
-                             CancellationToken.None,
-                             new FileDataStore("YoutubeAPI")
-                    ).Result;
+                // Método resposável por fazer o login no google e recuperar o token via Oauth 2.0
+                UserCredential credenciais;
+                using (var stream = new FileStream(HttpContext.Current.Server.MapPath(@"~\Json\youtube_client_secret.json"), FileMode.Open, FileAccess.Read))
+                {
+                    credenciais = GoogleWebAuthorizationBroker.AuthorizeAsync(
+                                 GoogleClientSecrets.Load(stream).Secrets,
+                                 new[] { YouTubeService.Scope.YoutubeReadonly },
+                                 "user",
+                                 CancellationToken.None,
+                                 new FileDataStore("YoutubeAPI")
+                        ).Result;
+                }
+
+                // Realizo a conexão com a API do Youtube através das credencias recuperadas acima
+                youTubeService = new YouTubeService(new BaseClientService.Initializer()
+                {
+                    HttpClientInitializer = credenciais,
+                    ApplicationName = "YoutubeAPI"
+                });
             }
+            catch(Exception e) { }
 
-            // Realizo a conexão com a API do Youtube através das credencias recuperadas acima
-            var servico = new YouTubeService(new BaseClientService.Initializer()
-            {
-                HttpClientInitializer = credenciais,
-                ApplicationName = "YoutubeAPI"
-            });
-
-            return servico;
+            return youTubeService;
         }
 
         //Método responsável por executar os métodos internos da API do Youtube e recuperar os dados do canal
         public static DadosCanalYoutube GetCanalYoutube()
         {
-            var canal = servicoYoutube.Channels.List("contentDetails");
-            canal.Mine = true;
-            var retornoCanal = canal.Execute();
+            DadosCanalYoutube dadosCanalYoutube = null;
 
-            DadosCanalYoutube dadosCanalYoutube = new DadosCanalYoutube
+            try
             {
-                PlayListId = retornoCanal.Items[0].ContentDetails.RelatedPlaylists.Uploads,
-                ChannelId = retornoCanal.Items[0].Id
-            };
+                var canal = servicoYoutube.Channels.List("contentDetails");
+                canal.Mine = true;
+                var retornoCanal = canal.Execute();
+
+                dadosCanalYoutube = new DadosCanalYoutube
+                {
+                    PlayListId = retornoCanal.Items[0].ContentDetails.RelatedPlaylists.Uploads,
+                    ChannelId = retornoCanal.Items[0].Id
+                };
+            }
+            catch(Exception e) { }
 
             return dadosCanalYoutube;
         }
@@ -61,22 +73,28 @@ namespace API.SR.ViewModel
         //Método responsável por executar os métodos internos da API do Youtube e recuperar os dados dos videos sem filtros
         public static IList<DadosYoutube> GetVideoYoutube(string playListId)
         {
-            var listaVideosCanal = servicoYoutube.PlaylistItems.List("contentDetails");
-            listaVideosCanal.PlaylistId = playListId;
-            listaVideosCanal.MaxResults = 2;
+            IList<DadosYoutube> dadosYoutube = null;
 
-            var retornoListaVideosCanal = listaVideosCanal.Execute();
-
-            IList<DadosYoutube> dadosYoutube = new List<DadosYoutube>();
-
-            foreach (var listaVideos in retornoListaVideosCanal.Items)
+            try
             {
-                dadosYoutube.Add(new DadosYoutube()
+                var listaVideosCanal = servicoYoutube.PlaylistItems.List("contentDetails");
+                listaVideosCanal.PlaylistId = playListId;
+                listaVideosCanal.MaxResults = 2;
+
+                var retornoListaVideosCanal = listaVideosCanal.Execute();
+
+                dadosYoutube = new List<DadosYoutube>();
+
+                foreach (var listaVideos in retornoListaVideosCanal.Items)
                 {
-                    Id = listaVideos.ContentDetails.VideoId,
-                    DataPublicacao = listaVideos.ContentDetails.VideoPublishedAt
-                });
+                    dadosYoutube.Add(new DadosYoutube()
+                    {
+                        Id = listaVideos.ContentDetails.VideoId,
+                        DataPublicacao = listaVideos.ContentDetails.VideoPublishedAt
+                    });
+                }
             }
+            catch(Exception e) { }
 
             return dadosYoutube;
         }
@@ -84,24 +102,30 @@ namespace API.SR.ViewModel
         //Método responsável por executar os métodos internos da API do Youtube e recuperar os dados dos videos com filtros
         public static IList<DadosYoutube> GetVideoYoutube(string channelId, string dataInicial, string dataFinal)
         {
-            var lista = servicoYoutube.Search.List("snippet");
-            lista.ChannelId = channelId;
-            lista.MaxResults = 50;
-            lista.PublishedAfter = DateTime.Parse(dataInicial);
-            lista.PublishedBefore = DateTime.Parse(dataFinal);
+            IList<DadosYoutube> dadosYoutube = null;
 
-            var retornoLista = lista.Execute();
-
-            IList<DadosYoutube> dadosYoutube = new List<DadosYoutube>();
-
-            foreach (var listaVideos in retornoLista.Items.Reverse())
+            try
             {
-                dadosYoutube.Add(new DadosYoutube()
+                var lista = servicoYoutube.Search.List("snippet");
+                lista.ChannelId = channelId;
+                lista.MaxResults = 50;
+                lista.PublishedAfter = DateTime.Parse(dataInicial);
+                lista.PublishedBefore = DateTime.Parse(dataFinal);
+
+                var retornoLista = lista.Execute();
+
+                dadosYoutube = new List<DadosYoutube>();
+
+                foreach (var listaVideos in retornoLista.Items.Reverse())
                 {
-                    Id = listaVideos.Id.VideoId,
-                    DataPublicacao = listaVideos.Snippet.PublishedAt
-                });
+                    dadosYoutube.Add(new DadosYoutube()
+                    {
+                        Id = listaVideos.Id.VideoId,
+                        DataPublicacao = listaVideos.Snippet.PublishedAt
+                    });
+                }
             }
+            catch (Exception e) { }            
 
             return dadosYoutube;
         }
